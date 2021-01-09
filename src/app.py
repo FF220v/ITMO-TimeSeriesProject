@@ -99,7 +99,7 @@ def generate_select_features_widget(columns: list):
     options = [{'label': col, 'value': col} for col in columns]
     return dbc.CardBody(
         [
-            html.Span("Timespan columns (Most significant go first. Example: days, hours, minutes, etc.)"),
+            html.Span("Timespan columns (Most significant go first. Example: date, hours, minutes, seconds)"),
             dcc.Dropdown(id=ComponentIds.TIME_FEATURE, options=options, multi=True),
             html.Br(),
             html.Span("Feature columns: "),
@@ -122,7 +122,10 @@ def features_over_time_widget(width):
     return dbc.Card(
         dbc.CardBody(
             [
-                dcc.Graph(id=ComponentIds.SELECTED_FEATURES_GRAPH)
+                dcc.Graph(id=ComponentIds.SELECTED_FEATURES_GRAPH,
+                          figure={'layout': {
+                              'title': "Here will be a graph of selected features over time."
+                          }})
             ],
         ),
         style={"width": width}
@@ -133,7 +136,10 @@ def prediction_over_time_widget(width):
     return dbc.Card(
         dbc.CardBody(
             [
-                dcc.Graph(id=ComponentIds.PREDICTION_GRAPH)
+                dcc.Graph(id=ComponentIds.PREDICTION_GRAPH,
+                          figure={'layout': {
+                              'title': "Here will be a graph of predicted features over time."
+                          }})
             ],
         ),
         style={"width": width}
@@ -171,6 +177,12 @@ def prediction_config_widget(width):
     )
 
 
+def generate_download_link():
+    return html.A("Download prediction",
+                  href='/downloadResults',
+                  target="_blank")
+
+
 def prediction_start_and_download_widget(width):
     return dbc.Card(
         dbc.CardBody(
@@ -181,10 +193,12 @@ def prediction_start_and_download_widget(width):
                                children=html.Span("Predict")),
                     html.Br(),
                     html.Br(),
-                    html.A("Download prediction",
-                           href='/downloadResults',
-                           target="_blank",
-                           id=ComponentIds.DOWNLOAD_PREDICTION),
+                    dcc.Loading(
+                        html.Div(
+                            html.Span("Download link will be here"),
+                            id=ComponentIds.DOWNLOAD_PREDICTION
+                        )
+                    ),
                     html.Br()
                 ],
             )
@@ -234,7 +248,8 @@ def create_app():
     @app.callback(Output(ComponentIds.TABLE_WIDGET, 'children'),
                   Output(ComponentIds.SELECTED_FEATURES_WIDGET, 'children'),
                   Input(ComponentIds.UPLOAD_DATA, 'contents'),
-                  State(ComponentIds.UPLOAD_DATA, 'filename'))
+                  State(ComponentIds.UPLOAD_DATA, 'filename'),
+                  prevent_initial_call=True)
     def update_data(contents, filename):
         if contents:
             content_type, content_string = contents.split(',')
@@ -263,7 +278,8 @@ def create_app():
     @app.callback(Output(ComponentIds.SELECTED_FEATURES_GRAPH, 'figure'),
                   Output(ComponentIds.PREDICTION_LENGTH_SLIDER, 'children'),
                   Input(ComponentIds.TIME_FEATURE, 'value'),
-                  Input(ComponentIds.SELECTED_FEATURES, 'value'))
+                  Input(ComponentIds.SELECTED_FEATURES, 'value'),
+                  prevent_initial_call=True)
     def update_features_graph(selected_timespan_keys, selected_feature_keys):
         if selected_timespan_keys and selected_feature_keys:
             try:
@@ -286,15 +302,17 @@ def create_app():
             }
             return fig, generate_prediction_length_slider(1, 10)
         return {'layout': {
-            'title': "Here will be a graph of selected feature over time."
+            'title': "Here will be a graph of selected features over time."
         }}, generate_prediction_length_slider(0, 0)
 
     @app.callback(Output(ComponentIds.PREDICTION_GRAPH, 'figure'),
+                  Output(ComponentIds.DOWNLOAD_PREDICTION, 'children'),
                   Input(ComponentIds.PREDICT, 'n_clicks'),
                   State(ComponentIds.PREDICTION_LENGTH, 'value'),
                   State(ComponentIds.METHOD_SELECTOR, 'value'),
                   State(ComponentIds.SELECTED_FEATURES, 'value'),
-                  State(ComponentIds.TIME_FEATURE, 'value'))
+                  State(ComponentIds.TIME_FEATURE, 'value'),
+                  prevent_initial_call=True)
     def predict_(prediction_button, prediction_length, method, selected_feature_keys, selected_timespan_keys):
         if prediction_length and method and selected_feature_keys and selected_timespan_keys:
             df = predict(pd.read_csv(TABLE_BUF_FILE), method, prediction_length,
@@ -312,12 +330,12 @@ def create_app():
                     'title': "Graph of predicted features over time."
                 }
             }
-            return fig
+            return fig, generate_download_link()
         return {
             'layout': {
                     'title': "Here will be a graph of predicted features over time."
                 }
-            }
+            }, html.Span("Please ensure that you filled prediction length, method and features are selected.")
 
     @app.server.route('/downloadResults')
     def download_csv():
