@@ -1,8 +1,6 @@
 import base64
-import uuid
 import io
 import pandas as pd
-import plotly.graph_objs as go
 
 import dash
 import dash_core_components as dcc
@@ -11,14 +9,21 @@ import dash_html_components as html
 import dash_table
 from dash.dependencies import Output, Input, State
 
+from src.backend import get_time_column, predict
+
 external_stylesheets = [dbc.themes.COSMO]
 
 
-prediction_methods_map = {"1": lambda x: x}
+prediction_methods_map = {
+    "Good": lambda x: x,
+    "Better": lambda x: x,
+    "Best": lambda x: x
+}
 
 
-TABLE_MAX_SIZE = 50
+TABLE_MAX_SIZE = 20
 TABLE_BUF_FILE = "current_table.csv"
+RESULTING_TABLE_FILE = "resulting_table.csv"
 
 
 class CardsWidth:
@@ -38,21 +43,11 @@ class ComponentIds:
     TABLE_WIDGET = "table_widget"
     SELECTED_FEATURES_GRAPH = "selected_features_graph"
     PREDICTION_LENGTH = "prediction_length"
+    PREDICTION_LENGTH_SLIDER = "prediction_length_slider"
     METHOD_SELECTOR = "method_selector"
     PREDICT = "predict"
     DOWNLOAD_PREDICTION = "download_prediction"
     PREDICTION_GRAPH = "prediction_graph"
-
-
-def serve_layout():
-    session_id = str(uuid.uuid4())
-
-    return html.Div([
-        html.Div(session_id, id='session-id', style={'display': 'none'}),
-        html.Button('Get data', id='get-data-button'),
-        html.Div(id='output-1'),
-        html.Div(id='output-2')
-    ])
 
 
 def uploading_widget(width):
@@ -103,8 +98,8 @@ def generate_select_features_widget(columns: list):
     options = [{'label': col, 'value': col} for col in columns]
     return dbc.CardBody(
         [
-            html.Span("Timespan column: "),
-            dcc.Dropdown(id=ComponentIds.TIME_FEATURE, options=options),
+            html.Span("Timespan columns (Most significant go first. Example: days, hours, minutes, etc.)"),
+            dcc.Dropdown(id=ComponentIds.TIME_FEATURE, options=options, multi=True),
             html.Br(),
             html.Span("Feature columns: "),
             dcc.Dropdown(id=ComponentIds.SELECTED_FEATURES, options=options, multi=True),
@@ -144,15 +139,30 @@ def prediction_over_time_widget(width):
     )
 
 
+def generate_prediction_length_slider(step, max):
+    marks = [0]
+    while marks[-1] < max:
+        marks.append(marks[-1] + step)
+    return dcc.Slider(
+        id=ComponentIds.PREDICTION_LENGTH,
+        min=0,
+        max=max,
+        step=None,
+        marks={k: str(v) for k, v in enumerate(marks)},
+        value=0
+    )
+
+
 def prediction_config_widget(width):
     return dbc.Card(
         dbc.CardBody(
             [
                 html.Span("Method: "),
-                dcc.Dropdown(id=ComponentIds.METHOD_SELECTOR),
+                dcc.Dropdown(id=ComponentIds.METHOD_SELECTOR, options=[{'label': key, 'value': key}
+                                                                       for key in prediction_methods_map]),
                 html.Br(),
                 html.Span("Desired prediction length: "),
-                dcc.Slider(id=ComponentIds.PREDICTION_LENGTH),
+                html.Div(generate_prediction_length_slider(0, 0), id=ComponentIds.PREDICTION_LENGTH_SLIDER),
                 html.Br()
             ],
         ),
@@ -248,30 +258,62 @@ def create_app():
         return 'Data table will be shown here.', generate_select_features_widget([])
 
     @app.callback(Output(ComponentIds.SELECTED_FEATURES_GRAPH, 'figure'),
+                  Output(ComponentIds.PREDICTION_LENGTH_SLIDER, 'children'),
                   Input(ComponentIds.TIME_FEATURE, 'value'),
                   Input(ComponentIds.SELECTED_FEATURES, 'value'))
-    def update_features_graph(selected_timespan_key, selected_feature_keys):
-        if selected_timespan_key and selected_feature_keys:
-            selected_timespan_key = selected_timespan_key
+    def update_features_graph(selected_timespan_keys, selected_feature_keys):
+        if selected_timespan_keys and selected_feature_keys:
             try:
                 df = pd.read_csv(TABLE_BUF_FILE)
             except Exception as e:
                 print(e)
                 return
+            time_column = get_time_column(df, selected_timespan_keys)
             fig = {
                 "data":
                     [
-                        {"y": df[key].to_list(), "x": df[selected_timespan_key].to_list(), "name": key}
+                        {"y": df[key].to_list(),
+                         "x": time_column,
+                         "name": key}
                         for key in selected_feature_keys
                     ],
                 'layout': {
                     'title': "Graph of selected features over time."
                 }
-
             }
-            return fig
+            return fig, generate_prediction_length_slider(1, 10)
         return {'layout': {
             'title': "Here will be a graph of selected feature over time."
-        }}
+        }}, generate_prediction_length_slider(0, 0)
+
+    @app.callback(Output(ComponentIds.PREDICTION_GRAPH, 'figure'),
+                  Input(ComponentIds.PREDICT, 'n_clicks'),
+                  State(ComponentIds.PREDICTION_LENGTH, 'value'),
+                  State(ComponentIds.METHOD_SELECTOR, 'value'),
+                  State(ComponentIds.SELECTED_FEATURES, 'value'),
+                  State(ComponentIds.TIME_FEATURE, 'value'))
+    def predict_(prediction_button, prediction_length, method, selected_feature_keys, selected_timespan_keys):
+        if prediction_length and method and selected_feature_keys and selected_timespan_keys:
+            df = predict(pd.read_csv(TABLE_BUF_FILE), method, prediction_length,
+                         selected_feature_keys, selected_timespan_keys)
+            df.to_csv(RESULTING_TABLE_FILE)
+            fig = {
+                "data":
+                    [
+                        {"y": df[key].to_list(),
+                         "x": df["time_"].to_list(),
+                         "name": key}
+                        for key in selected_feature_keys
+                    ],
+                'layout': {
+                    'title': "Graph of predicted features over time."
+                }
+            }
+            return fig
+        return {
+            'layout': {
+                    'title': "Here will be a graph of predicted features over time."
+                }
+            }
 
     return app
