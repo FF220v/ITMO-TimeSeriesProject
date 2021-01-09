@@ -8,6 +8,7 @@ import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash_table
 from dash.dependencies import Output, Input, State
+from flask import send_file
 
 from src.backend import get_time_column, predict
 
@@ -180,8 +181,10 @@ def prediction_start_and_download_widget(width):
                                children=html.Span("Predict")),
                     html.Br(),
                     html.Br(),
-                    dbc.Button(id=ComponentIds.DOWNLOAD_PREDICTION,
-                               children=html.Span("Download prediction")),
+                    html.A("Download prediction",
+                           href='/downloadResults',
+                           target="_blank",
+                           id=ComponentIds.DOWNLOAD_PREDICTION),
                     html.Br()
                 ],
             )
@@ -315,5 +318,10 @@ def create_app():
                     'title': "Here will be a graph of predicted features over time."
                 }
             }
+
+    @app.server.route('/downloadResults')
+    def download_csv():
+        return send_file(RESULTING_TABLE_FILE, mimetype='text/csv', attachment_filename=RESULTING_TABLE_FILE,
+                         as_attachment=True)
 
     return app
