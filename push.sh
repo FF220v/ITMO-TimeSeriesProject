@@ -1,0 +1,1 @@
+docker push ff220v/smptsa

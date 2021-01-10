@@ -1,0 +1,1 @@
+docker build -t ff220v/smptsa .
