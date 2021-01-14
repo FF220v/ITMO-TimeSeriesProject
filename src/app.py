@@ -346,7 +346,7 @@ def create_app():
                     df = pd.read_excel(io.BytesIO(decoded))
                 df.to_csv(TABLE_BUF_FILE)
             except Exception as e:
-                print(e)
+                traceback.print_exc()
                 return 'There was an error processing this file.', generate_select_features_widget([])
             return dash_table.DataTable(
                 data=df.head(TABLE_MAX_SIZE).to_dict('records'),
@@ -370,7 +370,7 @@ def create_app():
                 df = pd.read_csv(TABLE_BUF_FILE)
                 squash_timespan_to_one_column(df, selected_timespan_keys, time_format)
             except Exception as e:
-                print(e)
+                traceback.print_exc()
                 return dcc.Graph(figure={'layout': {'title': "Error building a graph."}}), f"Error: {str(e)}"
             return draw_feature_graphs(df, selected_feature_keys), ""
         return dcc.Graph(figure={'layout': {'title': "Here will be a graph of selected features over time."}}), ""
