@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+
+body {
+    font-family: "Open Sans", serif;
+    background-color: #eaeaea;
+}
+
+h1 {
+    /*color: #005cb2;*/
+    color: #1e88e5;
+    padding-top: 20px;
+    padding-bottom: 15px;
+}
+
+.card {
+    border-radius: 16px;
+    /*box-shadow: 0 1px 3px rgb(234, 234, 234), 0 1px 8px rgba(0,0,0,0.22);*/
+    padding: 10px;
+    margin-bottom: 2%;
+    /*margin-bottom: 8px;*/
+    /*margin-right: 8px;*/
+}
+
+/*.card-body {*/
+/*    */
+/*}*/
+
+.uploading {
+    width: 23%;
+    margin-right: 2%;
+}
+
+.uploading-area {
+    width: 75%;
+    line-Height: 60px;
+    border-Width: 2px;
+    border-style: dashed;
+    border-radius: 5px;
+    text-align: center;
+    border-color: #42a5f5;
+    /*border-color: #9162e4;*/
+    margin-top: 10%;
+}
+
+.uploading-area:hover {
+    background-color: #dcebf8;
+    cursor: pointer;
+}
+
+.method {
+    width: 48%;
+    margin-right: 2%;
+}
+
+.span-label{
+    display: block;
+
+    margin-bottom: 10px;
+}
+
+#predict {
+    font-weight: bold;
+    border: 1px solid #42a5f5;
+    background-color: #42a5f5;
+    color: white;
+    border-radius: 50px;
+    padding: 2% 5%;
+}
+
+#predict:hover {
+    font-weight: bold;
+    border: 1px solid #42a5f5;
+    color: #42a5f5;
+    background-color: white;
+    cursor: pointer;
+}
+
+#ComponentIds.TABLE_WIDGET {
+    color: red;
+}
