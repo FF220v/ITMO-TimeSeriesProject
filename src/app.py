@@ -25,7 +25,7 @@ STEP_LENGTH_MAP = {
     1: datetime.timedelta(minutes=1),
     2: datetime.timedelta(hours=1),
     3: datetime.timedelta(days=1),
-    4: datetime.timedelta(days=7),
+    4: datetime.timedelta(weeks=1),
     5: datetime.timedelta(days=30),
     6: datetime.timedelta(days=365),
 }
@@ -136,14 +136,39 @@ def select_features_widget(width):
     )
 
 
+def draw_feature_graphs(df, feature_columns):
+    graphs = []
+    for col in feature_columns:
+        graphs.append(dcc.Graph(figure={
+            "data":
+                [
+                    {
+                        "y": df[col].to_list(),
+                        "x": df["time_"].to_list(),
+                        "name": col
+                    }
+                ],
+            "layout":
+                {
+                    "title": f"Graph of feature [{col}] over time."
+                }
+        }
+        ))
+    if not graphs:
+        return [dcc.Graph(figure={'layout': {
+            'title': "Here will be a graph of selected features over time."
+        }})]
+    return graphs
+
+
 def features_over_time_widget(width):
     return dbc.Card(
         dbc.CardBody(
             [
-                dcc.Graph(id=ComponentIds.SELECTED_FEATURES_GRAPH,
-                          figure={'layout': {
-                              'title': "Here will be a graph of selected features over time."
-                          }})
+                dcc.Loading(html.Div(dcc.Graph(figure={'layout': {
+                    'title': "Here will be a graph of selected features over time."
+                }}),
+                    id=ComponentIds.SELECTED_FEATURES_GRAPH))
             ],
         ),
         style={"width": width}
@@ -299,7 +324,7 @@ def create_app():
             ), generate_select_features_widget(df.columns)
         return 'Data table will be shown here.', generate_select_features_widget([])
 
-    @app.callback(Output(ComponentIds.SELECTED_FEATURES_GRAPH, 'figure'),
+    @app.callback(Output(ComponentIds.SELECTED_FEATURES_GRAPH, 'children'),
                   Output(ComponentIds.FEATURE_SELECTOR_ERROR, 'children'),
                   Input(ComponentIds.TIME_FEATURE, 'value'),
                   Input(ComponentIds.SELECTED_FEATURES, 'value'),
@@ -312,25 +337,9 @@ def create_app():
                 squash_timespan_to_one_column(df, selected_timespan_keys, time_format)
             except Exception as e:
                 print(e)
-                return {'layout': {
-                        'title': "Error building a graph."
-                    }}, f"Error: {str(e)}"
-            fig = {
-                "data":
-                    [
-                        {"y": df[key].to_list(),
-                         "x": df["time_"].to_list(),
-                         "name": key}
-                        for key in selected_feature_keys
-                    ],
-                'layout': {
-                    'title': "Graph of selected features over time."
-                }
-            }
-            return fig, ""
-        return {'layout': {
-            'title': "Here will be a graph of selected features over time."
-        }}, ""
+                return dcc.Graph(figure={'layout': {'title': "Error building a graph."}}), f"Error: {str(e)}"
+            return draw_feature_graphs(df, selected_feature_keys), ""
+        return dcc.Graph(figure={'layout': {'title': "Here will be a graph of selected features over time."}}), ""
 
     @app.callback(Output(ComponentIds.PREDICTION_GRAPH, 'figure'),
                   Output(ComponentIds.DOWNLOAD_PREDICTION, 'children'),
@@ -350,33 +359,42 @@ def create_app():
                  selected_feature_keys,
                  selected_timespan_keys):
         if method and selected_feature_keys and selected_timespan_keys:
-            prediction_step_length = STEP_LENGTH_MAP[prediction_step_length]
-            df = predict(pd.read_csv(TABLE_BUF_FILE),
-                         method,
-                         prediction_steps,
-                         prediction_step_length,
-                         selected_feature_keys,
-                         selected_timespan_keys,
-                         time_format)
-            df.to_csv(RESULTING_TABLE_FILE)
-            fig = {
-                "data":
-                    [
-                        {"y": df[key].to_list(),
-                         "x": df["time_"].to_list(),
-                         "name": key}
-                        for key in selected_feature_keys
-                    ],
-                'layout': {
-                    'title': "Graph of predicted features over time."
+            try:
+                prediction_step_length = STEP_LENGTH_MAP[prediction_step_length]
+                df = predict(pd.read_csv(TABLE_BUF_FILE),
+                             method,
+                             prediction_steps,
+                             prediction_step_length,
+                             selected_feature_keys,
+                             selected_timespan_keys,
+                             time_format)
+                df.to_csv(RESULTING_TABLE_FILE)
+                fig = {
+                    "data":
+                        [
+                            {"y": df[key].to_list(),
+                             "x": df["time_"].to_list(),
+                             "name": key}
+                            for key in selected_feature_keys
+                        ],
+                    'layout': {
+                        'title': "Graph of predicted features over time."
+                    }
                 }
-            }
-            return fig, generate_download_link()
+                return fig, generate_download_link()
+            except Exception as e:
+                raise e
+                # TODO uncomment when work is done
+                # return {'layout': {
+                #     'title': "Here will be a graph of predicted features over time."
+                # }}, html.Span(f"Error occured: {str(e)}", style={'color': 'red'})
+
         return {
             'layout': {
                     'title': "Here will be a graph of predicted features over time."
                 }
-            }, html.Span("Please ensure that you filled prediction length, method and features are selected.")
+            }, html.Span("Please ensure that you uploaded the file, chosen a method and features are selected.",
+                         style={'color': 'red'})
 
     @app.server.route('/downloadResults')
     def download_csv():
