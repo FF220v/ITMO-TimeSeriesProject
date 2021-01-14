@@ -74,13 +74,17 @@ def uploading_widget(width):
                             multiple=False
                         ),
                         html.Br(),
-                        html.Span(".xls and .csv are supported.")
+                        html.Span(".xls and .csv are supported."),
+                        html.Br(),
+                        html.Br(),
+                        html.Span("Type a delimiter character used in csv file:"),
+                        dcc.Input(value=",", maxLength=1, id=ComponentIds.DELIMITER_INPUT)
                     ]
                 )
             ],
-            className = "card-body"
+            className="card-body"
         ),
-        className = "uploading"
+        className="uploading"
     )
 
 
@@ -169,6 +173,7 @@ def prediction_config_widget():
                            min=0,
                            max=6,
                            step=None,
+                           value=0,
                            marks={
                                0: "second",
                                1: "minute",
@@ -262,15 +267,16 @@ def create_app():
                   Output(ComponentIds.SELECTED_FEATURES_WIDGET, 'children'),
                   Input(ComponentIds.UPLOAD_DATA, 'contents'),
                   State(ComponentIds.UPLOAD_DATA, 'filename'),
+                  State(ComponentIds.DELIMITER_INPUT, 'value'),
                   prevent_initial_call=True)
-    def update_data(contents, filename):
+    def update_data(contents, filename, delimiter):
         if contents:
             content_type, content_string = contents.split(',')
             decoded = base64.b64decode(content_string)
             try:
                 if 'csv' in filename:
                     # Assume that the user uploaded a CSV file
-                    df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+                    df = pd.read_csv(io.StringIO(decoded.decode('utf-8')), delimiter=delimiter)
                 elif 'xls' in filename:
                     # Assume that the user uploaded an excel file
                     df = pd.read_excel(io.BytesIO(decoded))
