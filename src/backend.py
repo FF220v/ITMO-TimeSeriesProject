@@ -1,7 +1,9 @@
 import datetime
 import pandas as pd
 from pandas import DataFrame
-
+from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
+import numpy as np
+import statsmodels.api as sm
 
 def get_prediction_step_length():
     return 1
@@ -25,8 +27,7 @@ def predict(df, method, prediction_steps, prediction_step_length, feature_column
     squash_timespan_to_one_column(df, timespan_columns, time_format)
     prepared_df = DataFrame()
     init_time = df['time_'].array[-1]
-    step = datetime.timedelta(days=prediction_step_length)  # например
-    prepared_df['time_'] = [init_time + i * step for i in range(prediction_steps)]
+    prepared_df['time_'] = [init_time + i * prediction_step_length for i in range(prediction_steps)]
     result = pd.concat(
         [prediction_func(df, prepared_df.copy(), feature) for feature in feature_columns],
         axis=1
@@ -35,28 +36,39 @@ def predict(df, method, prediction_steps, prediction_step_length, feature_column
     return result
 
 
-def avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
-    pass
+def avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+    prepared_df[feature_column] = df[feature_column].mean()
+    return prepared_df
 
 
-def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
-    pass
+def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+    prepared_df[feature_column] = df[feature_column].rolling(60).mean().iloc[-1]
+    return prepared_df
 
 
-def simple_exp_smoothing(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
-    pass
+def simple_exp_smoothing(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+
+    fit2 = SimpleExpSmoothing(np.asarray(df[feature_column])).fit(smoothing_level=0.3, optimized=False)
+    prepared_df[feature_column] =fit2.forecast(len(prepared_df))
+    return prepared_df
 
 
-def holt_linear(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
-    pass
+def holt_linear(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+    fit1 = Holt(np.asarray(df[feature_column])).fit(smoothing_level=0.3, smoothing_slope=0.1)
+    prepared_df[feature_column] = fit1.forecast(len(prepared_df))
+    return prepared_df
 
 
-def holt_winter(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
-    pass
+def holt_winter(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+    fit1 = ExponentialSmoothing(np.asarray(df[feature_column]), seasonal_periods=7, trend='add', seasonal='add', ).fit()
+    prepared_df[feature_column] = fit1.forecast(len(prepared_df))
+    return prepared_df
 
 
-def sarima(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
-    pass
+def sarima(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+    fit1 = sm.tsa.statespace.SARIMAX(df[feature_column], order=(2, 1, 4), seasonal_order=(0, 1, 1, 7)).fit()
+    prepared_df[feature_column] = fit1.predict(start=df['time_'].array[-1], end=prepared_df['time_'].array[-1], dynamic=True)
+    return prepared_df
 
 
 prediction_methods_map = {
