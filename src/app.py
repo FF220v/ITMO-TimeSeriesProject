@@ -10,6 +10,7 @@ import dash_html_components as html
 import dash_table
 from dash.dependencies import Output, Input, State
 from flask import send_file
+from pandas import DataFrame
 
 from src.backend import predict, squash_timespan_to_one_column, prediction_methods_map
 
@@ -165,7 +166,11 @@ def draw_prediction_graphs(df, prediction_df, feature_columns):
     graphs = []
     for col in feature_columns:
         prediction_data = prediction_df[col].to_list()
-        prediction_time = prediction_df["time_"].to_list()
+        prediction_time = prediction_df["time_"]
+        if isinstance(prediction_time, DataFrame):
+            prediction_time = prediction_time[0].to_list()
+        else:
+            prediction_time = prediction_df.to_list()
         df_data = df[col].to_list()
         df_time = df["time_"].to_list()
         # while df_time[-1] - df_time[0] > prediction_time[-1] - prediction_time[0]:  # This algorithm sucks macaroni
@@ -396,7 +401,7 @@ def create_app():
             try:
                 prediction_step_length = STEP_LENGTH_MAP[prediction_step_length]
                 df = pd.read_csv(TABLE_BUF_FILE)
-                predicted_df = predict(pd.read_csv(TABLE_BUF_FILE),
+                predicted_df = predict(df,  # This changes df, squashes time columns to time_.
                                        method,
                                        prediction_steps,
                                        prediction_step_length,

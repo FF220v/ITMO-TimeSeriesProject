@@ -5,9 +5,6 @@ from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 import numpy as np
 import statsmodels.api as sm
 
-def get_prediction_step_length():
-    return 1
-
 
 def get_time_column(df, timespan_keys):
     return [" ".join((str(elem) for elem in tup))
