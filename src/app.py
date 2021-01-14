@@ -166,11 +166,7 @@ def draw_prediction_graphs(df, prediction_df, feature_columns):
     graphs = []
     for col in feature_columns:
         prediction_data = prediction_df[col].to_list()
-        prediction_time = prediction_df["time_"]
-        if isinstance(prediction_time, DataFrame):
-            prediction_time = prediction_time[0].to_list()
-        else:
-            prediction_time = prediction_df.to_list()
+        prediction_time = prediction_df["time_"].to_list()
         df_data = df[col].to_list()
         df_time = df["time_"].to_list()
         # while df_time[-1] - df_time[0] > prediction_time[-1] - prediction_time[0]:  # This algorithm sucks macaroni

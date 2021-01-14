@@ -25,11 +25,13 @@ def predict(df, method, prediction_steps, prediction_step_length, feature_column
     prepared_df = DataFrame()
     init_time = df['time_'].array[-1]
     prepared_df['time_'] = [init_time + i * prediction_step_length for i in range(prediction_steps)]
-    result = pd.concat(
-        [prediction_func(df, prepared_df.copy(), feature) for feature in feature_columns],
-        axis=1
-    )
-    result['time_'] = prepared_df['time_']
+    results = [prediction_func(df, prepared_df.copy(), feature) for feature in feature_columns]
+    if len(results) > 1:
+        result = results.pop(0)
+        for res in results:
+            result = result.merge(res)
+    else:
+        result = results[0]
     return result
 
 
