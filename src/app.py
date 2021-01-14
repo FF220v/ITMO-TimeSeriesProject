@@ -130,9 +130,7 @@ def generate_select_features_widget(columns: list):
 
 def select_features_widget(width):
     return dbc.Card(
-        dcc.Loading(
-            html.Div(generate_select_features_widget([]), id=ComponentIds.SELECTED_FEATURES_WIDGET)
-        ),
+        html.Div(generate_select_features_widget([]), id=ComponentIds.SELECTED_FEATURES_WIDGET),
         style={"width": width}
     )
 

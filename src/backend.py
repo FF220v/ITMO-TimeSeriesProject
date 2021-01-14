@@ -1,4 +1,3 @@
-import datetime
 import pandas as pd
 from pandas import DataFrame
 from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
