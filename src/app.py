@@ -1,6 +1,8 @@
 import base64
 import datetime
 import io
+import traceback
+
 import pandas as pd
 
 import dash
@@ -404,11 +406,10 @@ def create_app():
                 df.to_csv(RESULTING_TABLE_FILE)
                 return draw_prediction_graphs(df, predicted_df, selected_feature_keys), generate_download_link()
             except Exception as e:
-                raise e
-                # TODO uncomment when work is done
-                # return dcc.Graph(figure={'layout': {
-                #     'title': "Here will be a graph of predicted features over time."
-                # }}), html.Span(f"Error occured: {str(e)}", style={'color': 'red'})
+                traceback.print_exc()
+                return dcc.Graph(figure={'layout': {
+                    'title': "Here will be a graph of predicted features over time."
+                }}), html.Span(f"Error occured: {str(e)}", style={'color': 'red'})
 
         return dcc.Graph(figure={
             'layout': {
