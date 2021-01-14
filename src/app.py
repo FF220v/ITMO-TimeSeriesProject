@@ -168,6 +168,9 @@ def draw_prediction_graphs(df, prediction_df, feature_columns):
         prediction_time = prediction_df["time_"].to_list()
         df_data = df[col].to_list()
         df_time = df["time_"].to_list()
+        # while df_time[-1] - df_time[0] > prediction_time[-1] - prediction_time[0]:  # This algorithm sucks macaroni
+        #     df_time.pop(0)
+        #     df_data.pop(0)
         graphs.append(dcc.Graph(figure={
             "data":
                 [
