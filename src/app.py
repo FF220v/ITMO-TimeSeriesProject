@@ -63,14 +63,7 @@ def uploading_widget(width):
                                 'Drag and Drop or ',
                                 html.A('Select Files')
                             ]),
-                            style={
-                                'width': '75%',
-                                'lineHeight': '60px',
-                                'borderWidth': '1px',
-                                'borderStyle': 'dashed',
-                                'borderRadius': '5px',
-                                'textAlign': 'center',
-                            },
+                            className = "uploading-area",
                             multiple=False
                         ),
                         html.Br(),
@@ -78,9 +71,9 @@ def uploading_widget(width):
                     ]
                 )
             ],
-            style={"margin-top": "10%"}
+            className = "card-body"
         ),
-        style={"width": width}
+        className = "uploading"
     )
 
 
@@ -88,7 +81,8 @@ def table_widget(width):
     return dbc.Card(
         dbc.CardBody(
             dcc.Loading(
-                html.Div(dash_table.DataTable(), id=ComponentIds.TABLE_WIDGET),
+#                 html.Div(dash_table.DataTable(), id=ComponentIds.TABLE_WIDGET),
+                  html.Div("Data table will be shown here.", id=ComponentIds.TABLE_WIDGET),
             )
         ),
         style={"width": width},
@@ -99,10 +93,10 @@ def generate_select_features_widget(columns: list):
     options = [{'label': col, 'value': col} for col in columns]
     return dbc.CardBody(
         [
-            html.Span("Timespan columns (Most significant go first. Example: date, hours, minutes, seconds)"),
+            html.Span("Timespan columns (Most significant go first. Example: date, hours, minutes, seconds)", className="span-label"),
             dcc.Dropdown(id=ComponentIds.TIME_FEATURE, options=options, multi=True),
             html.Br(),
-            html.Span("Feature columns: "),
+            html.Span("Feature columns: ", className="span-label"),
             dcc.Dropdown(id=ComponentIds.SELECTED_FEATURES, options=options, multi=True),
             html.Br(),
         ],
@@ -138,7 +132,8 @@ def prediction_over_time_widget(width):
             [
                 dcc.Graph(id=ComponentIds.PREDICTION_GRAPH,
                           figure={'layout': {
-                              'title': "Here will be a graph of predicted features over time."
+                              'title': "Here will be a graph of predicted features over time.",
+                              'title_font_color': "red"
                           }})
             ],
         ),
@@ -160,20 +155,20 @@ def generate_prediction_length_slider(step, max):
     )
 
 
-def prediction_config_widget(width):
+def prediction_config_widget():
     return dbc.Card(
         dbc.CardBody(
             [
-                html.Span("Method: "),
+                html.Span("Method: ", className="span-label"),
                 dcc.Dropdown(id=ComponentIds.METHOD_SELECTOR, options=[{'label': key, 'value': key}
                                                                        for key in prediction_methods_map]),
                 html.Br(),
-                html.Span("Desired prediction length: "),
+                html.Span("Desired prediction length: ", className="span-label"),
                 html.Div(generate_prediction_length_slider(0, 0), id=ComponentIds.PREDICTION_LENGTH_SLIDER),
                 html.Br()
             ],
         ),
-        style={"width": width}
+        className="method"
     )
 
 
@@ -232,7 +227,7 @@ def create_app():
             ),
             dbc.Row(
                 [
-                    prediction_config_widget(CardsWidth.HALF), prediction_start_and_download_widget(CardsWidth.HALF)
+                    prediction_config_widget(), prediction_start_and_download_widget(CardsWidth.HALF)
                 ]
             ),
             dbc.Row(
