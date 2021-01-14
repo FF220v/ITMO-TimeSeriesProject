@@ -1,6 +1,6 @@
+import datetime
 import pandas as pd
-
-# Currently these are stupid stubs
+from pandas import DataFrame
 
 
 def get_prediction_step_length():
@@ -20,18 +20,50 @@ def squash_timespan_to_one_column(df: pd.DataFrame, timespan_columns, format):
     df.columns.drop(labels=timespan_columns)
 
 
-def predict(df, method, prediction_length, feature_columns, timespan_columns, time_format):
+def predict(df, method, prediction_steps, prediction_step_length, feature_columns, timespan_columns, time_format):
+    prediction_func = prediction_methods_map[method]
     squash_timespan_to_one_column(df, timespan_columns, time_format)
-    return pd.concat(
-        [predict_one_feature(df, feature) for feature in feature_columns],
+    prepared_df = DataFrame()
+    init_time = df['time_'].array[-1]
+    step = datetime.timedelta(days=prediction_step_length)  # например
+    prepared_df['time_'] = [init_time + i * step for i in range(prediction_steps)]
+    result = pd.concat(
+        [prediction_func(df, prepared_df.copy(), feature) for feature in feature_columns],
         axis=1
     )
+    result['time_'] = prepared_df['time_']
+    return result
 
 
-def predict_one_feature(df, feature):
-    prediction_df = pd.DataFrame()
-    prediction_df[feature] = df[feature]
-    prediction_df["time_"] = df["time_"]
-    return prediction_df
+def avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
+    pass
 
 
+def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
+    pass
+
+
+def simple_exp_smoothing(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
+    pass
+
+
+def holt_linear(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
+    pass
+
+
+def holt_winter(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
+    pass
+
+
+def sarima(df: DataFrame, prepared_df: DataFrame, feature_column: list) -> DataFrame:
+    pass
+
+
+prediction_methods_map = {
+    "Average forecast": avg_forecast,
+    "Moving average forecast": moving_avg_forecast,
+    "Simple exponential smoothing": simple_exp_smoothing,
+    "Holt linear": holt_linear,
+    "Holt-Winter": holt_winter,
+    "SARIMA": sarima
+}

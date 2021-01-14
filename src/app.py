@@ -1,4 +1,5 @@
 import base64
+import datetime
 import io
 import pandas as pd
 
@@ -10,21 +11,24 @@ import dash_table
 from dash.dependencies import Output, Input, State
 from flask import send_file
 
-from src.backend import predict, squash_timespan_to_one_column
+from src.backend import predict, squash_timespan_to_one_column, prediction_methods_map
 
 external_stylesheets = [dbc.themes.COSMO]
-
-
-prediction_methods_map = {
-    "Good": lambda x: x,
-    "Better": lambda x: x,
-    "Best": lambda x: x
-}
-
 
 TABLE_MAX_SIZE = 20
 TABLE_BUF_FILE = "current_table.csv"
 RESULTING_TABLE_FILE = "resulting_table.csv"
+
+
+STEP_LENGTH_MAP = {
+    0: datetime.timedelta(seconds=1),
+    1: datetime.timedelta(minutes=1),
+    2: datetime.timedelta(hours=1),
+    3: datetime.timedelta(days=1),
+    4: datetime.timedelta(days=7),
+    5: datetime.timedelta(days=30),
+    6: datetime.timedelta(days=365),
+}
 
 
 class CardsWidth:
@@ -40,13 +44,14 @@ class ComponentIds:
     TIME_FEATURE = "time_feature"
     TIME_FORMAT = "time_format"
     SELECTED_FEATURES = "data_features"
+    DELIMITER_INPUT = "delimiter_input"
     FEATURE_SELECTOR_ERROR = "feature_selector_error"
     SELECTED_TIMESPAN = "selected_timespan"
     UPLOAD_DATA = "upload_data"
     TABLE_WIDGET = "table_widget"
     SELECTED_FEATURES_GRAPH = "selected_features_graph"
-    PREDICTION_LENGTH = "prediction_length"
-    PREDICTION_LENGTH_SLIDER = "prediction_length_slider"
+    PREDICTION_STEPS = "prediction_steps"
+    PREDICTION_STEP_LENGTH = "prediction_length"
     METHOD_SELECTOR = "method_selector"
     PREDICT = "predict"
     DOWNLOAD_PREDICTION = "download_prediction"
@@ -151,20 +156,6 @@ def prediction_over_time_widget(width):
     )
 
 
-def generate_prediction_length_slider(step, max):
-    marks = [0]
-    while marks[-1] < max:
-        marks.append(marks[-1] + step)
-    return dcc.Slider(
-        id=ComponentIds.PREDICTION_LENGTH,
-        min=0,
-        max=max,
-        step=None,
-        marks={k: str(v) for k, v in enumerate(marks)},
-        value=0
-    )
-
-
 def prediction_config_widget():
     return dbc.Card(
         dbc.CardBody(
@@ -173,8 +164,24 @@ def prediction_config_widget():
                 dcc.Dropdown(id=ComponentIds.METHOD_SELECTOR, options=[{'label': key, 'value': key}
                                                                        for key in prediction_methods_map]),
                 html.Br(),
-                html.Span("Desired prediction length: ", className="span-label"),
-                html.Div(generate_prediction_length_slider(0, 0), id=ComponentIds.PREDICTION_LENGTH_SLIDER),
+                html.Span("Prediction step length: ", className="span-label"),
+                dcc.Slider(id=ComponentIds.PREDICTION_STEP_LENGTH,
+                           min=0,
+                           max=6,
+                           step=None,
+                           marks={
+                               0: "second",
+                               1: "minute",
+                               2: "hour",
+                               3: "day",
+                               4: "week",
+                               5: "month",
+                               6: "year"
+                           },
+                           ),
+                html.Br(),
+                html.Span("Prediction steps (integer number 0-100000)", className="span-label"),
+                dcc.Input(value=1000, min=0, max=100000, type='number', id=ComponentIds.PREDICTION_STEPS),
                 html.Br()
             ],
         ),
@@ -196,6 +203,7 @@ def prediction_start_and_download_widget(width):
                     html.Br(),
                     dbc.Button(id=ComponentIds.PREDICT,
                                children=html.Span("Predict")),
+                    html.Br(),
                     html.Br(),
                     html.Br(),
                     dcc.Loading(
@@ -281,7 +289,6 @@ def create_app():
         return 'Data table will be shown here.', generate_select_features_widget([])
 
     @app.callback(Output(ComponentIds.SELECTED_FEATURES_GRAPH, 'figure'),
-                  Output(ComponentIds.PREDICTION_LENGTH_SLIDER, 'children'),
                   Output(ComponentIds.FEATURE_SELECTOR_ERROR, 'children'),
                   Input(ComponentIds.TIME_FEATURE, 'value'),
                   Input(ComponentIds.SELECTED_FEATURES, 'value'),
@@ -296,7 +303,7 @@ def create_app():
                 print(e)
                 return {'layout': {
                         'title': "Error building a graph."
-                    }}, generate_prediction_length_slider(0, 0), f"Error: {str(e)}"
+                    }}, f"Error: {str(e)}"
             fig = {
                 "data":
                     [
@@ -309,23 +316,37 @@ def create_app():
                     'title': "Graph of selected features over time."
                 }
             }
-            return fig, generate_prediction_length_slider(1, 10), ""
+            return fig, ""
         return {'layout': {
             'title': "Here will be a graph of selected features over time."
-        }}, generate_prediction_length_slider(0, 0), ""
+        }}, ""
 
     @app.callback(Output(ComponentIds.PREDICTION_GRAPH, 'figure'),
                   Output(ComponentIds.DOWNLOAD_PREDICTION, 'children'),
                   Input(ComponentIds.PREDICT, 'n_clicks'),
-                  State(ComponentIds.PREDICTION_LENGTH, 'value'),
+                  State(ComponentIds.TIME_FORMAT, 'value'),
+                  State(ComponentIds.PREDICTION_STEP_LENGTH, 'value'),
+                  State(ComponentIds.PREDICTION_STEPS, 'value'),
                   State(ComponentIds.METHOD_SELECTOR, 'value'),
                   State(ComponentIds.SELECTED_FEATURES, 'value'),
                   State(ComponentIds.TIME_FEATURE, 'value'),
                   prevent_initial_call=True)
-    def predict_(prediction_button, prediction_length, method, selected_feature_keys, selected_timespan_keys):
-        if prediction_length and method and selected_feature_keys and selected_timespan_keys:
-            df = predict(pd.read_csv(TABLE_BUF_FILE), method, prediction_length,
-                         selected_feature_keys, selected_timespan_keys)
+    def predict_(prediction_button,
+                 time_format,
+                 prediction_step_length,
+                 prediction_steps,
+                 method,
+                 selected_feature_keys,
+                 selected_timespan_keys):
+        if method and selected_feature_keys and selected_timespan_keys:
+            prediction_step_length = STEP_LENGTH_MAP[prediction_step_length]
+            df = predict(pd.read_csv(TABLE_BUF_FILE),
+                         method,
+                         prediction_steps,
+                         prediction_step_length,
+                         selected_feature_keys,
+                         selected_timespan_keys,
+                         time_format)
             df.to_csv(RESULTING_TABLE_FILE)
             fig = {
                 "data":
