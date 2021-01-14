@@ -10,7 +10,6 @@ import dash_html_components as html
 import dash_table
 from dash.dependencies import Output, Input, State
 from flask import send_file
-from pandas import DataFrame
 
 from src.backend import predict, squash_timespan_to_one_column, prediction_methods_map
 
@@ -176,12 +175,12 @@ def draw_prediction_graphs(df, prediction_df, feature_columns):
                     {
                         "y": df_data,
                         "x": df_time,
-                        "name": col
+                        "name": "Original"
                     },
                     {
                         "y": prediction_data,
                         "x": prediction_time,
-                        "name": col
+                        "name": "Predicted"
                     }
                 ],
             "layout":
