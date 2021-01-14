@@ -77,8 +77,13 @@ def uploading_widget(width):
                         html.Span(".xls and .csv are supported."),
                         html.Br(),
                         html.Br(),
-                        html.Span("Type a delimiter character used in csv file:"),
-                        dcc.Input(value=",", maxLength=1, id=ComponentIds.DELIMITER_INPUT)
+                        html.Span("Delimiter character used in csv file:"),
+                        html.Br(),
+                        dcc.Input(value=",",
+                                  type="text",
+                                  maxLength=1,
+                                  size="10",
+                                  id=ComponentIds.DELIMITER_INPUT)
                     ]
                 )
             ],
