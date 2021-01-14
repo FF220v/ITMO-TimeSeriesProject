@@ -161,6 +161,31 @@ def draw_feature_graphs(df, feature_columns):
     return graphs
 
 
+def draw_prediction_graphs(df, prediction_df, feature_columns):
+    graphs = []
+    for col in feature_columns:
+        graphs.append(dcc.Graph(figure={
+            "data":
+                [
+                    {
+                        "y": prediction_df[col].to_list(),
+                        "x": prediction_df["time_"].to_list(),
+                        "name": col
+                    }
+                ],
+            "layout":
+                {
+                    "title": f"Graph of predicted feature [{col}] over time."
+                }
+        }
+        ))
+    if not graphs:
+        return [dcc.Graph(figure={'layout': {
+            'title': "Here will be a graph of predicted features over time."
+        }})]
+    return graphs
+
+
 def features_over_time_widget(width):
     return dbc.Card(
         dbc.CardBody(
@@ -179,11 +204,10 @@ def prediction_over_time_widget(width):
     return dbc.Card(
         dbc.CardBody(
             [
-                dcc.Graph(id=ComponentIds.PREDICTION_GRAPH,
-                          figure={'layout': {
-                              'title': "Here will be a graph of predicted features over time.",
-                              'title_font_color': "red"
-                          }})
+                dcc.Loading(html.Div(dcc.Graph(figure={'layout': {
+                    'title': "Here will be a graph of predicted features over time."
+                }}),
+                    id=ComponentIds.PREDICTION_GRAPH))
             ],
         ),
         style={"width": width}
@@ -361,40 +385,29 @@ def create_app():
         if method and selected_feature_keys and selected_timespan_keys:
             try:
                 prediction_step_length = STEP_LENGTH_MAP[prediction_step_length]
-                df = predict(pd.read_csv(TABLE_BUF_FILE),
-                             method,
-                             prediction_steps,
-                             prediction_step_length,
-                             selected_feature_keys,
-                             selected_timespan_keys,
-                             time_format)
+                df = pd.read_csv(TABLE_BUF_FILE)
+                predicted_df = predict(pd.read_csv(TABLE_BUF_FILE),
+                                       method,
+                                       prediction_steps,
+                                       prediction_step_length,
+                                       selected_feature_keys,
+                                       selected_timespan_keys,
+                                       time_format)
                 df.to_csv(RESULTING_TABLE_FILE)
-                fig = {
-                    "data":
-                        [
-                            {"y": df[key].to_list(),
-                             "x": df["time_"].to_list(),
-                             "name": key}
-                            for key in selected_feature_keys
-                        ],
-                    'layout': {
-                        'title': "Graph of predicted features over time."
-                    }
-                }
-                return fig, generate_download_link()
+                return draw_prediction_graphs(df, predicted_df, selected_feature_keys), generate_download_link()
             except Exception as e:
                 raise e
                 # TODO uncomment when work is done
-                # return {'layout': {
+                # return dcc.Graph(figure={'layout': {
                 #     'title': "Here will be a graph of predicted features over time."
-                # }}, html.Span(f"Error occured: {str(e)}", style={'color': 'red'})
+                # }}), html.Span(f"Error occured: {str(e)}", style={'color': 'red'})
 
-        return {
+        return dcc.Graph(figure={
             'layout': {
                     'title': "Here will be a graph of predicted features over time."
                 }
-            }, html.Span("Please ensure that you uploaded the file, chosen a method and features are selected.",
-                         style={'color': 'red'})
+            }), html.Span("Please ensure that you uploaded the file, chosen a method and features are selected.",
+                          style={'color': 'red'})
 
     @app.server.route('/downloadResults')
     def download_csv():
