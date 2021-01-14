@@ -10,7 +10,7 @@ import dash_table
 from dash.dependencies import Output, Input, State
 from flask import send_file
 
-from src.backend import get_time_column, predict
+from src.backend import predict, squash_timespan_to_one_column
 
 external_stylesheets = [dbc.themes.COSMO]
 
@@ -38,7 +38,9 @@ class CardsWidth:
 class ComponentIds:
     SELECTED_FEATURES_WIDGET = "selected_features_widget"
     TIME_FEATURE = "time_feature"
+    TIME_FORMAT = "time_format"
     SELECTED_FEATURES = "data_features"
+    FEATURE_SELECTOR_ERROR = "feature_selector_error"
     SELECTED_TIMESPAN = "selected_timespan"
     UPLOAD_DATA = "upload_data"
     TABLE_WIDGET = "table_widget"
@@ -81,7 +83,6 @@ def table_widget(width):
     return dbc.Card(
         dbc.CardBody(
             dcc.Loading(
-#                 html.Div(dash_table.DataTable(), id=ComponentIds.TABLE_WIDGET),
                   html.Div("Data table will be shown here.", id=ComponentIds.TABLE_WIDGET),
             )
         ),
@@ -93,12 +94,21 @@ def generate_select_features_widget(columns: list):
     options = [{'label': col, 'value': col} for col in columns]
     return dbc.CardBody(
         [
-            html.Span("Timespan columns (Most significant go first. Example: date, hours, minutes, seconds)", className="span-label"),
+            html.Span("Timespan columns. More then one column are concatenated with space (' ') character",
+                      className="span-label"),
             dcc.Dropdown(id=ComponentIds.TIME_FEATURE, options=options, multi=True),
+            html.Br(),
+            html.Span("Timespan format. Mostly it is picked automatically. For peculiar cases use this:", className="span-label"),
+            html.Span("%Y - four digit years; %y - two digit years; %m - months; %d - days", className="span-label"),
+            html.Span("%H - hours; %M - minutes; %S - seconds", className="span-label"),
+            html.Span("Example: to read date like 2020-12-31 00:00:00 use %Y-%m-%d %H:%M:%S", className="span-label"),
+            dcc.Input(id=ComponentIds.TIME_FORMAT),
+            html.Br(),
             html.Br(),
             html.Span("Feature columns: ", className="span-label"),
             dcc.Dropdown(id=ComponentIds.SELECTED_FEATURES, options=options, multi=True),
             html.Br(),
+            html.Span(id=ComponentIds.FEATURE_SELECTOR_ERROR, style={'color': 'red'}, className="span-label"),
         ],
     )
 
@@ -272,22 +282,26 @@ def create_app():
 
     @app.callback(Output(ComponentIds.SELECTED_FEATURES_GRAPH, 'figure'),
                   Output(ComponentIds.PREDICTION_LENGTH_SLIDER, 'children'),
+                  Output(ComponentIds.FEATURE_SELECTOR_ERROR, 'children'),
                   Input(ComponentIds.TIME_FEATURE, 'value'),
                   Input(ComponentIds.SELECTED_FEATURES, 'value'),
+                  Input(ComponentIds.TIME_FORMAT, 'value'),
                   prevent_initial_call=True)
-    def update_features_graph(selected_timespan_keys, selected_feature_keys):
+    def update_features_graph(selected_timespan_keys, selected_feature_keys, time_format):
         if selected_timespan_keys and selected_feature_keys:
             try:
                 df = pd.read_csv(TABLE_BUF_FILE)
+                squash_timespan_to_one_column(df, selected_timespan_keys, time_format)
             except Exception as e:
                 print(e)
-                return
-            time_column = get_time_column(df, selected_timespan_keys)
+                return {'layout': {
+                        'title': "Error building a graph."
+                    }}, generate_prediction_length_slider(0, 0), f"Error: {str(e)}"
             fig = {
                 "data":
                     [
                         {"y": df[key].to_list(),
-                         "x": time_column,
+                         "x": df["time_"].to_list(),
                          "name": key}
                         for key in selected_feature_keys
                     ],
@@ -295,10 +309,10 @@ def create_app():
                     'title': "Graph of selected features over time."
                 }
             }
-            return fig, generate_prediction_length_slider(1, 10)
+            return fig, generate_prediction_length_slider(1, 10), ""
         return {'layout': {
             'title': "Here will be a graph of selected features over time."
-        }}, generate_prediction_length_slider(0, 0)
+        }}, generate_prediction_length_slider(0, 0), ""
 
     @app.callback(Output(ComponentIds.PREDICTION_GRAPH, 'figure'),
                   Output(ComponentIds.DOWNLOAD_PREDICTION, 'children'),
