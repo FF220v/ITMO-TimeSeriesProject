@@ -365,7 +365,7 @@ def create_app():
             return draw_feature_graphs(df, selected_feature_keys), ""
         return dcc.Graph(figure={'layout': {'title': "Here will be a graph of selected features over time."}}), ""
 
-    @app.callback(Output(ComponentIds.PREDICTION_GRAPH, 'figure'),
+    @app.callback(Output(ComponentIds.PREDICTION_GRAPH, 'children'),
                   Output(ComponentIds.DOWNLOAD_PREDICTION, 'children'),
                   Input(ComponentIds.PREDICT, 'n_clicks'),
                   State(ComponentIds.TIME_FORMAT, 'value'),
