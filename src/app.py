@@ -164,12 +164,21 @@ def draw_feature_graphs(df, feature_columns):
 def draw_prediction_graphs(df, prediction_df, feature_columns):
     graphs = []
     for col in feature_columns:
+        prediction_data = prediction_df[col].to_list()
+        prediction_time = prediction_df["time_"].to_list()
+        df_data = df[col].to_list()
+        df_time = df["time_"].to_list()
         graphs.append(dcc.Graph(figure={
             "data":
                 [
                     {
-                        "y": prediction_df[col].to_list(),
-                        "x": prediction_df["time_"].to_list(),
+                        "y": df_data,
+                        "x": df_time,
+                        "name": col
+                    },
+                    {
+                        "y": prediction_data,
+                        "x": prediction_time,
                         "name": col
                     }
                 ],
@@ -180,9 +189,7 @@ def draw_prediction_graphs(df, prediction_df, feature_columns):
         }
         ))
     if not graphs:
-        return [dcc.Graph(figure={'layout': {
-            'title': "Here will be a graph of predicted features over time."
-        }})]
+        return [dcc.Graph(figure={'layout': {'title': "Here will be a graph of predicted features over time."}})]
     return graphs
 
 
