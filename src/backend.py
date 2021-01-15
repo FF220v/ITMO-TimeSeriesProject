@@ -61,8 +61,8 @@ def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
     res = model_.fit()
 
     prepared_df[feature_column] = res.forecast(len(prepared_df['time_'])).array
-    plt.plot(prepared_df['time_'], prepared_df[feature_column])
-    plt.show()
+    # plt.plot(prepared_df['time_'], prepared_df[feature_column])
+    # plt.show()
     return prepared_df
 
 
