@@ -237,7 +237,7 @@ def prediction_config_widget():
                 html.Span("Prediction step length: ", className="span-label"),
                 dcc.Slider(id=ComponentIds.PREDICTION_STEP_LENGTH,
                            min=0,
-                           max=6,
+                           max=8,
                            step=None,
                            value=0,
                            marks={
@@ -253,8 +253,8 @@ def prediction_config_widget():
                            },
                            ),
                 html.Br(),
-                html.Span("Prediction steps (integer number 0-1000000)", className="span-label"),
-                dcc.Input(value=1000, min=0, max=1000000, type='number', id=ComponentIds.PREDICTION_STEPS),
+                html.Span("Prediction steps (integer number 0-100000)", className="span-label"),
+                dcc.Input(value=1000, min=0, max=100000, type='number', id=ComponentIds.PREDICTION_STEPS),
                 html.Br()
             ],
         ),
