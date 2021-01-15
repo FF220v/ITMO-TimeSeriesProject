@@ -23,13 +23,15 @@ RESULTING_TABLE_FILE = "resulting_table.csv"
 
 
 STEP_LENGTH_MAP = {
-    0: datetime.timedelta(seconds=1),
-    1: datetime.timedelta(minutes=1),
-    2: datetime.timedelta(hours=1),
-    3: datetime.timedelta(days=1),
-    4: datetime.timedelta(weeks=1),
-    5: datetime.timedelta(days=30),
-    6: datetime.timedelta(days=365),
+    0: datetime.timedelta(microseconds=1),
+    1: datetime.timedelta(milliseconds=1),
+    2: datetime.timedelta(seconds=1),
+    3: datetime.timedelta(minutes=1),
+    4: datetime.timedelta(hours=1),
+    5: datetime.timedelta(days=1),
+    6: datetime.timedelta(weeks=1),
+    7: datetime.timedelta(days=30),
+    8: datetime.timedelta(days=365),
 }
 
 
@@ -239,18 +241,20 @@ def prediction_config_widget():
                            step=None,
                            value=0,
                            marks={
-                               0: "second",
-                               1: "minute",
-                               2: "hour",
-                               3: "day",
-                               4: "week",
-                               5: "month",
-                               6: "year"
+                               0: "microsecond",
+                               1: "millisecond",
+                               2: "second",
+                               3: "minute",
+                               4: "hour",
+                               5: "day",
+                               6: "week",
+                               7: "month",
+                               8: "year"
                            },
                            ),
                 html.Br(),
-                html.Span("Prediction steps (integer number 0-100000)", className="span-label"),
-                dcc.Input(value=1000, min=0, max=100000, type='number', id=ComponentIds.PREDICTION_STEPS),
+                html.Span("Prediction steps (integer number 0-1000000)", className="span-label"),
+                dcc.Input(value=1000, min=0, max=1000000, type='number', id=ComponentIds.PREDICTION_STEPS),
                 html.Br()
             ],
         ),
