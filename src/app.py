@@ -260,7 +260,7 @@ def prediction_config_widget():
 
 def generate_download_link():
     return html.A("Download prediction",
-                  href='/downloadResults',
+                  href='/download_results',
                   target="_blank")
 
 
@@ -403,7 +403,7 @@ def create_app():
                                        selected_feature_keys,
                                        selected_timespan_keys,
                                        time_format)
-                df.to_csv(RESULTING_TABLE_FILE)
+                predicted_df.to_csv(RESULTING_TABLE_FILE)
                 return draw_prediction_graphs(df, predicted_df, selected_feature_keys), generate_download_link()
             except Exception as e:
                 traceback.print_exc()
@@ -418,9 +418,9 @@ def create_app():
             }), html.Span("Please ensure that you uploaded the file, chosen a method and features are selected.",
                           style={'color': 'red'})
 
-    @app.server.route('/downloadResults')
+    @app.server.route('/download_results')
     def download_csv():
         return send_file(RESULTING_TABLE_FILE, mimetype='text/csv', attachment_filename=RESULTING_TABLE_FILE,
-                         as_attachment=True)
+                         as_attachment=True, cache_timeout=0)
 
     return app
