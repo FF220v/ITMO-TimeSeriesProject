@@ -239,7 +239,7 @@ def prediction_config_widget():
                            min=0,
                            max=8,
                            step=None,
-                           value=0,
+                           value=4,
                            marks={
                                0: "microsecond",
                                1: "millisecond",
