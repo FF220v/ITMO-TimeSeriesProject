@@ -43,12 +43,12 @@ def predict(df, method, prediction_steps, prediction_step_length, feature_column
     return result
 
 
-def avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+def avg_forecast(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
     prepared_df[feature_column] = df[feature_column].mean()
     return prepared_df
 
 
-def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
     prepared_df[feature_column] = df[feature_column].rolling(60).mean().iloc[-1]
     return prepared_df
 
