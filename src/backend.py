@@ -1,6 +1,7 @@
 from datetime import timedelta
 from functools import partial
-
+# from keras.models import Sequential
+# from keras.layers import LSTM, Dense
 import pandas as pd
 from pandas import DataFrame
 import statsmodels.api as sm
@@ -52,6 +53,17 @@ def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, prediction_step_l
     prepared_df[feature_column] = df[feature_column].rolling(60).mean().iloc[-1]
     return prepared_df
 
+# def LSMT(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
+#     model = Sequential()
+#     model.add(LSTM(256, return_sequences=True, input_shape=(df[feature_column])))
+#     model.add(LSTM(128, input_shape=(df[feature_column])))
+#     model.add(Dense(2))
+#     model.compile(loss='mean_squared_error', optimizer='adam')
+#     model.fit(df['time_'], df[feature_column], epochs=2000, batch_size=10, verbose=2, shuffle=False)
+#     model.save_weights('LSTMBasic1.h5')
+#     model.load_weights('LSTMBasic1.h5')
+#     prepared_df[feature_column] = model.predict(df[feature_column])
+#     return prepared_df
 
 def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
                        prediction_step_length: timedelta, feature_column: str):
@@ -68,6 +80,7 @@ def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
 
 prediction_methods_map = {
     "Average forecast": avg_forecast,
+    # "LSMT": LSMT,
     "Moving average forecast": moving_avg_forecast,
     "Simple exponential smoothing": partial(statsmodels_worker, partial(sm.tsa.SimpleExpSmoothing, )),
     "Holt linear": partial(statsmodels_worker, partial(sm.tsa.Holt, )),
