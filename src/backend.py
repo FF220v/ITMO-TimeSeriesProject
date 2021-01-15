@@ -3,7 +3,6 @@ from functools import partial
 
 import pandas as pd
 from pandas import DataFrame
-import numpy as np
 import statsmodels.api as sm
 from pandas._libs.tslibs.timedeltas import Timedelta
 from matplotlib import pyplot as plt
