@@ -1,8 +1,12 @@
+from datetime import timedelta
+from functools import partial
+
 import pandas as pd
 from pandas import DataFrame
-from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 import numpy as np
 import statsmodels.api as sm
+from pandas._libs.tslibs.timedeltas import Timedelta
+from matplotlib import pyplot as plt
 
 
 def get_time_column(df, timespan_keys):
@@ -19,12 +23,18 @@ def squash_timespan_to_one_column(df: pd.DataFrame, timespan_columns, format):
 
 
 def predict(df, method, prediction_steps, prediction_step_length, feature_columns, timespan_columns, time_format):
-    prediction_func = prediction_methods_map[method]
     squash_timespan_to_one_column(df, timespan_columns, time_format)
+
+    # prepare copied df
     prepared_df = DataFrame()
     init_time = df['time_'].array[-1]
     prepared_df['time_'] = [init_time + i * prediction_step_length for i in range(prediction_steps)]
-    results = [prediction_func(df, prepared_df.copy(), feature) for feature in feature_columns]
+
+    #  You can change prepared_df here. It is basically made for shortness.
+    results = [prediction_methods_map[method](df,
+                                              prepared_df.copy(),
+                                              prediction_step_length,
+                                              feature) for feature in feature_columns]
     if len(results) > 1:
         result = results.pop(0)
         for res in results:
@@ -44,36 +54,30 @@ def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, feature_column: l
     return prepared_df
 
 
-def simple_exp_smoothing(df: DataFrame, prepared_df: DataFrame, feature_column: list):
+def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
+                       prediction_step_length: timedelta, feature_column: str):
+    df_series = pd.Series(df[feature_column].array, df['time_'])
+    df_series = df_series.resample(Timedelta(prediction_step_length)).ffill()
+    model_ = model(endog=df_series)
+    res = model_.fit()
 
-    fit2 = SimpleExpSmoothing(np.asarray(df[feature_column])).fit(smoothing_level=0.3, optimized=False)
-    prepared_df[feature_column] =fit2.forecast(len(prepared_df))
-    return prepared_df
-
-
-def holt_linear(df: DataFrame, prepared_df: DataFrame, feature_column: list):
-    fit1 = Holt(np.asarray(df[feature_column])).fit(smoothing_level=0.3, smoothing_slope=0.1)
-    prepared_df[feature_column] = fit1.forecast(len(prepared_df))
-    return prepared_df
-
-
-def holt_winter(df: DataFrame, prepared_df: DataFrame, feature_column: list):
-    fit1 = ExponentialSmoothing(np.asarray(df[feature_column]), seasonal_periods=7, trend='add', seasonal='add', ).fit()
-    prepared_df[feature_column] = fit1.forecast(len(prepared_df))
-    return prepared_df
-
-
-def sarima(df: DataFrame, prepared_df: DataFrame, feature_column: list):
-    fit1 = sm.tsa.statespace.SARIMAX(df[feature_column], order=(2, 1, 4), seasonal_order=(0, 1, 1, 7)).fit()
-    prepared_df[feature_column] = fit1.predict(start=df['time_'].array[-1], end=prepared_df['time_'].array[-1], dynamic=True)
+    prepared_df[feature_column] = res.forecast(len(prepared_df['time_'])).array
+    plt.plot(prepared_df['time_'], prepared_df[feature_column])
+    plt.show()
     return prepared_df
 
 
 prediction_methods_map = {
     "Average forecast": avg_forecast,
     "Moving average forecast": moving_avg_forecast,
-    "Simple exponential smoothing": simple_exp_smoothing,
-    "Holt linear": holt_linear,
-    "Holt-Winter": holt_winter,
-    "SARIMA": sarima
+    "Simple exponential smoothing": partial(statsmodels_worker, partial(sm.tsa.SimpleExpSmoothing, )),
+    "Holt linear": partial(statsmodels_worker, partial(sm.tsa.Holt, )),
+    "Holt-Winter": partial(statsmodels_worker, partial(sm.tsa.ExponentialSmoothing, seasonal_periods=7,
+                                                       trend='add', seasonal='add')),
+    "SARIMAX": partial(statsmodels_worker, partial(sm.tsa.SARIMAX, order=(2, 1, 4), seasonal_order=(0, 1, 1, 7)))
 }
+
+if __name__ == "__main__":
+    source_data = pd.read_csv("Train.csv")
+    result = predict(source_data, "Holt linear", 100, timedelta(hours=1), ["Count"], ["Datetime"], None)
+    print('')
