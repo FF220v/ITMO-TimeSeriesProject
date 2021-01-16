@@ -54,6 +54,8 @@ def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, prediction_step_l
     return prepared_df
 
 def NewModel(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
+    df['time_']=df['time_'].astype(np.int64)
+    prepared_df['time_']=prepared_df['time_'].astype(np.int64)
     model = XGBRegressor(
         max_depth=5,
         n_estimators=350,
@@ -64,10 +66,12 @@ def NewModel(df: DataFrame, prepared_df: DataFrame, prediction_step_length: time
         seed=42)
 
     model.fit(
-        df['time_'],
-        df[feature_column]
+        df[df['time_']<40],
+        df[df[feature_column]<40]
         )
     prepared_df[feature_column]=model.predict(prepared_df['time_'])
+    df['time_'] = df['time_'].astype(np.datetime64)
+    prepared_df['time_'] = prepared_df['time_'].astype(np.datetime64)
     return prepared_df
 
 def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
@@ -85,7 +89,7 @@ def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
 
 prediction_methods_map = {
     "Average forecast": avg_forecast,
-   # "XGB": NewModel,
+    #"XGB": NewModel,
     "Moving average forecast": moving_avg_forecast,
     "Simple exponential smoothing": partial(statsmodels_worker, partial(sm.tsa.SimpleExpSmoothing, )),
     "Holt linear": partial(statsmodels_worker, partial(sm.tsa.Holt, )),
