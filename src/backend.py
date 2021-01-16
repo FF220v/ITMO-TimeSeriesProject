@@ -1,11 +1,11 @@
 from datetime import timedelta
 from functools import partial
-# from keras.models import Sequential
-# from keras.layers import LSTM, Dense
 import pandas as pd
+import numpy as np
 from pandas import DataFrame
 import statsmodels.api as sm
 from pandas._libs.tslibs.timedeltas import Timedelta
+from xgboost import XGBRegressor
 from matplotlib import pyplot as plt
 
 
@@ -53,17 +53,22 @@ def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, prediction_step_l
     prepared_df[feature_column] = df[feature_column].rolling(60).mean().iloc[-1]
     return prepared_df
 
-# def LSMT(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
-#     model = Sequential()
-#     model.add(LSTM(256, return_sequences=True, input_shape=(df[feature_column])))
-#     model.add(LSTM(128, input_shape=(df[feature_column])))
-#     model.add(Dense(2))
-#     model.compile(loss='mean_squared_error', optimizer='adam')
-#     model.fit(df['time_'], df[feature_column], epochs=2000, batch_size=10, verbose=2, shuffle=False)
-#     model.save_weights('LSTMBasic1.h5')
-#     model.load_weights('LSTMBasic1.h5')
-#     prepared_df[feature_column] = model.predict(df[feature_column])
-#     return prepared_df
+def NewModel(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
+    model = XGBRegressor(
+        max_depth=5,
+        n_estimators=350,
+        min_child_weight=300,
+        colsample_bytree=0.8,
+        subsample=0.8,
+        eta=0.3,
+        seed=42)
+
+    model.fit(
+        df['time_'],
+        df[feature_column]
+        )
+    prepared_df[feature_column]=model.predict(prepared_df['time_'])
+    return prepared_df
 
 def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
                        prediction_step_length: timedelta, feature_column: str):
@@ -80,7 +85,7 @@ def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
 
 prediction_methods_map = {
     "Average forecast": avg_forecast,
-    # "LSMT": LSMT,
+   # "XGB": NewModel,
     "Moving average forecast": moving_avg_forecast,
     "Simple exponential smoothing": partial(statsmodels_worker, partial(sm.tsa.SimpleExpSmoothing, )),
     "Holt linear": partial(statsmodels_worker, partial(sm.tsa.Holt, )),
