@@ -44,3 +44,5 @@ tzlocal==2.1
 Werkzeug==1.0.1
 wincertstore==0.2
 xlrd==2.0.1
+tensorflow
+sklearn
