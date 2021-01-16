@@ -6,7 +6,6 @@ from pandas import DataFrame
 import statsmodels.api as sm
 from pandas._libs.tslibs.timedeltas import Timedelta
 from xgboost import XGBRegressor
-from matplotlib import pyplot as plt
 
 
 def get_time_column(df, timespan_keys):
@@ -53,9 +52,14 @@ def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, prediction_step_l
     prepared_df[feature_column] = df[feature_column].rolling(60).mean().iloc[-1]
     return prepared_df
 
-def NewModel(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
-    df['time_']=df['time_'].astype(np.int64)
-    prepared_df['time_']=prepared_df['time_'].astype(np.int64)
+
+def xgb_model(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
+    df_series = pd.Series(df[feature_column].array, df['time_'])
+    df_series = df_series.resample(Timedelta(prediction_step_length)).ffill()
+
+    df_time = np.array(range(len(df_series)))
+    prediction_time = np.array(range(len(df_series), len(prepared_df['time_']) + len(df_series)))
+
     model = XGBRegressor(
         max_depth=5,
         n_estimators=350,
@@ -63,16 +67,13 @@ def NewModel(df: DataFrame, prepared_df: DataFrame, prediction_step_length: time
         colsample_bytree=0.8,
         subsample=0.8,
         eta=0.3,
-        seed=42)
+        seed=42
+    )
 
-    model.fit(
-        df[df['time_']<40],
-        df[df[feature_column]<40]
-        )
-    prepared_df[feature_column]=model.predict(prepared_df['time_'])
-    df['time_'] = df['time_'].astype(np.datetime64)
-    prepared_df['time_'] = prepared_df['time_'].astype(np.datetime64)
+    model.fit(np.array(df_series), df_time)
+    prepared_df[feature_column] = model.predict(prediction_time)
     return prepared_df
+
 
 def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
                        prediction_step_length: timedelta, feature_column: str):
@@ -89,7 +90,7 @@ def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
 
 prediction_methods_map = {
     "Average forecast": avg_forecast,
-    #"XGB": NewModel,
+    "XGB": xgb_model,
     "Moving average forecast": moving_avg_forecast,
     "Simple exponential smoothing": partial(statsmodels_worker, partial(sm.tsa.SimpleExpSmoothing, )),
     "Holt linear": partial(statsmodels_worker, partial(sm.tsa.Holt, )),
@@ -100,5 +101,5 @@ prediction_methods_map = {
 
 if __name__ == "__main__":
     source_data = pd.read_csv("Train.csv")
-    result = predict(source_data, "Holt linear", 100, timedelta(hours=1), ["Count"], ["Datetime"], None)
+    result = predict(source_data, "XGB", 100, timedelta(hours=1), ["Count"], ["Datetime"], None)
     print('')
