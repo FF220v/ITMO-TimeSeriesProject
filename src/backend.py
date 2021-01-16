@@ -1,19 +1,18 @@
-from datetime import timedelta
-from functools import partial
-
 import os
 import random
 from datetime import timedelta
+from datetime import timedelta
+from functools import partial
 from functools import partial
 
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import tensorflow as tf
+from matplotlib import pyplot as plt
 from pandas import DataFrame
 from pandas._libs.tslibs.timedeltas import Timedelta
 from sklearn.preprocessing import MinMaxScaler
-from matplotlib import pyplot as plt
 
 
 def get_time_column(df, timespan_keys):
@@ -173,7 +172,7 @@ def predict_dnn(df: DataFrame, prepared_df: DataFrame, prediction_step_length: t
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
                                                       patience=4,
                                                       restore_best_weights=True)
-    checkpoint_filepath = "/tmp/checkpoint"
+    checkpoint_filepath = "./checkpoint"
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
         save_weights_only=True,
