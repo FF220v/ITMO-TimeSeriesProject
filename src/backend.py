@@ -54,7 +54,7 @@ def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, prediction_step_l
 
 
 def xgb_model(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
-    df_series = pd.Series(df[feature_column].array, df['time_'])
+    df_series = pd.Series(df[df[feature_column]<len(df[feature_column])].array, df[df['time_']<len(df['time_'])])
     df_series = df_series.resample(Timedelta(prediction_step_length)).ffill()
 
     df_time = np.array(range(len(df_series)))
