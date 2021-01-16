@@ -1,3 +1,6 @@
+from datetime import timedelta
+from functools import partial
+
 import os
 import random
 from datetime import timedelta
@@ -10,6 +13,7 @@ import tensorflow as tf
 from pandas import DataFrame
 from pandas._libs.tslibs.timedeltas import Timedelta
 from sklearn.preprocessing import MinMaxScaler
+from matplotlib import pyplot as plt
 
 
 def get_time_column(df, timespan_keys):
