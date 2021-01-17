@@ -108,8 +108,8 @@ def predict_dnn(df: DataFrame, prepared_df: DataFrame, prediction_step_length: t
     df_series = df_series.resample(Timedelta(prediction_step_length)).ffill()
     forecast_interval = len(prepared_df)
 
-    history_length = min(24 * 7 * 4, len(df) / 8)  # in dataset points (=4w if interval=1h)
-    validation_delta = 2 * history_length  # validation size
+    history_length = int(min(24 * 7 * 4, len(df) / 8))  # in dataset points (=4w if interval=1h)
+    validation_delta = int(2 * history_length)  # validation size
     step_size = 1  # step for sliding window stripe
     target_step = 0  # target shift (0 - predict next data after sliding window)
     batch_size = 128  # minibatch size
