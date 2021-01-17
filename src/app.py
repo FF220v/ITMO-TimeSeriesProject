@@ -241,8 +241,8 @@ def prediction_config_widget():
                            step=None,
                            value=4,
                            marks={
-                               0: "microsecond",
-                               1: "millisecond",
+                               0: "μsecond",
+                               1: "msecond",
                                2: "second",
                                3: "minute",
                                4: "hour",
