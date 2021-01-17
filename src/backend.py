@@ -3,8 +3,8 @@ import random
 from datetime import timedelta
 from datetime import timedelta
 from functools import partial
-from functools import partial
-
+import pmdarima as pm
+from pmdarima.arima import auto_arima
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -59,6 +59,21 @@ def moving_avg_forecast(df: DataFrame, prepared_df: DataFrame, prediction_step_l
     prepared_df[feature_column] = df[feature_column].rolling(60).mean().iloc[-1]
     return prepared_df
 
+def auto_arima(df: DataFrame, prepared_df: DataFrame, prediction_step_length: timedelta, feature_column: list):
+    df=df[['time_',feature_column]]
+    df=df.astype(np.int64)
+    stepwise_model = pm.auto_arima(df[feature_column], start_p=1, start_q=1,
+                                max_p=3, max_q=3, m=7,
+                                start_P=0, seasonal=True,
+                                d=1, D=1, trace=True,
+                                error_action='ignore',
+                                suppress_warnings=True,
+                                stepwise=True)
+    stepwise_model.aic()
+    stepwise_model.fit(df[feature_column])
+    future_forecast = stepwise_model.predict(n_periods=len(prepared_df['time_']))
+    prepared_df[feature_column] = future_forecast
+    return prepared_df
 
 def statsmodels_worker(model, df: DataFrame, prepared_df: DataFrame,
                        prediction_step_length: timedelta, feature_column: str):
@@ -212,7 +227,9 @@ prediction_methods_map = {
     "Holt-Winter": partial(statsmodels_worker, partial(sm.tsa.ExponentialSmoothing, seasonal_periods=7,
                                                        trend='add', seasonal='add', freq='W')),
     "SARIMAX": partial(statsmodels_worker, partial(sm.tsa.SARIMAX, order=(2, 1, 4), seasonal_order=(0, 1, 1, 7))),
+    "AUTO_ARIMA": auto_arima,
     "Deep Neural Network": predict_dnn
+
 }
 
 if __name__ == "__main__":
