@@ -227,7 +227,7 @@ prediction_methods_map = {
     "Holt-Winter": partial(statsmodels_worker, partial(sm.tsa.ExponentialSmoothing, seasonal_periods=7,
                                                        trend='add', seasonal='add', freq='W')),
     "SARIMAX": partial(statsmodels_worker, partial(sm.tsa.SARIMAX, order=(2, 1, 4), seasonal_order=(0, 1, 1, 7))),
-    "AUTO_ARIMA": auto_arima,
+    "Auto ARIMA": auto_arima,
     "Deep Neural Network": predict_dnn
 
 }
