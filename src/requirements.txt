@@ -6,7 +6,9 @@ cachetools==4.2.0
 certifi==2020.6.20
 chardet==4.0.0
 click==7.1.2
+colorama==0.4.4
 cycler==0.10.0
+Cython==0.29.17
 dash==1.18.1
 dash-bootstrap-components==0.11.1
 dash-core-components==1.14.1
@@ -46,6 +48,7 @@ pandas==1.2.0
 patsy==0.5.1
 Pillow==8.1.0
 plotly==4.14.1
+pmdarima==1.8.0
 protobuf==3.14.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
