@@ -2,6 +2,8 @@
 A repo for teamwork on a time series project.
 Our project is *SuperMegaProTimeSeriesAnalyser*!
 
+[Ссылка на арезентацию](https://www.figma.com/proto/D5aEWf299NAx0yXznDOFHR/TSA-T-course?node-id=28%3A2&viewport=6048%2C664%2C2.2322583198547363&frame-preset-name=Desktop&scaling=contain)
+
 SuperMegaProTimeSeriesAnalyser is a tool for time series analysis. It allows you to use 6 different methods 
 of prediction with your datasets in a pretty graphical browser-based interface.
 
